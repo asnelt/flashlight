@@ -1,0 +1,34 @@
+cff-version: 1.2.0
+message: "If you use this formalization, please cite the original paper."
+title: "Flashlight: a Lean 4 formalization of the flashlight transformation of copulas"
+type: software
+authors:
+  - family-names: Onken
+    given-names: Arno
+license: Apache-2.0
+repository-code: "https://github.com/asnelt/flashlight"
+url: "https://asnelt.github.io/flashlight/docs"
+version: 0.1.0
+keywords:
+  - Lean 4
+  - Mathlib
+  - copula
+  - formal verification
+preferred-citation:
+  type: article
+  title: "Analyzing Short-Term Noise Dependencies of Spike-Counts in Macaque Prefrontal Cortex Using Copulas and the Flashlight Transformation"
+  authors:
+    - family-names: Onken
+      given-names: Arno
+    - family-names: Grünewälder
+      given-names: Steffen
+    - family-names: Munk
+      given-names: Matthias H. J.
+    - family-names: Obermayer
+      given-names: Klaus
+  journal: "PLoS Computational Biology"
+  volume: 5
+  issue: 11
+  start: e1000577
+  year: 2009
+  doi: 10.1371/journal.pcbi.1000577

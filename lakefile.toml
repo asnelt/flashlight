@@ -1,0 +1,23 @@
+name = "Flashlight"
+version = "0.1.0"
+description = "Lean 4 formalization of the flashlight transformation of copulas (Onken et al., PLoS Comput Biol 2009)"
+keywords = ["math", "copula", "probability", "measure-theory"]
+homepage = "https://github.com/asnelt/flashlight"
+license = "Apache-2.0"
+licenseFiles = ["LICENSE"]
+readmeFile = "README.md"
+defaultTargets = ["Flashlight"]
+
+[leanOptions]
+pp.unicode.fun = true # pretty-prints `fun a ↦ b`
+relaxedAutoImplicit = false
+weak.linter.mathlibStandardSet = true
+maxSynthPendingDepth = 3
+
+[[require]]
+name = "mathlib"
+scope = "leanprover-community"
+rev = "v4.34.1"
+
+[[lean_lib]]
+name = "Flashlight"
