@@ -1,4 +1,4 @@
-# Flashlight
+# Flashlight transformation in Lean 4
 
 [![Lean Action CI](https://github.com/asnelt/flashlight/actions/workflows/lean_action_ci.yml/badge.svg)](https://github.com/asnelt/flashlight/actions/workflows/lean_action_ci.yml)
 [![Documentation](https://img.shields.io/badge/docs-API-blue)](https://asnelt.github.io/flashlight/docs)
