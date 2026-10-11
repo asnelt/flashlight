@@ -1,8 +1,9 @@
 name = "Flashlight"
-version = "0.1.0"
+version = "0.2.0"
+versionTags = {not = {startsWith = "v4."}}
 description = "Lean 4 formalization of the flashlight transformation of copulas (Onken et al., PLoS Comput Biol 2009)"
 keywords = ["math", "copula", "probability", "measure-theory"]
-homepage = "https://github.com/asnelt/flashlight"
+homepage = "https://asnelt.github.io/flashlight/docs"
 license = "Apache-2.0"
 licenseFiles = ["LICENSE"]
 readmeFile = "README.md"

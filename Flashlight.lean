@@ -159,6 +159,9 @@ def boxVolume (C : (ι → ℝ) → ℝ) (u v : ι → ℝ) : ℝ :=
 
 /-- `C` is a `d`-copula (only its values on `[0,1]^ι` matter). -/
 structure IsCopula (C : (ι → ℝ) → ℝ) : Prop where
+  /-- `C(1, …, 1) = 1`. For `d ≥ 1` this follows from the uniform margins; it is stated
+  explicitly so that the definition is also correct in dimension `0`. -/
+  normalized : C 1 = 1
   /-- `C` is grounded. -/
   grounded : ∀ u ∈ unitCube ι, (∃ i, u i = 0) → C u = 0
   /-- `C` has uniform margins. -/
@@ -214,16 +217,13 @@ lemma kappa_mem_unitCube (S A : Finset ι) {u : ι → ℝ} (hu : u ∈ unitCube
 /-- Being a copula only depends on the values on the unit cube. -/
 lemma IsCopula.congr {C D : (ι → ℝ) → ℝ} (hC : IsCopula C)
     (h : ∀ u ∈ unitCube ι, C u = D u) : IsCopula D where
+  normalized := h 1 one_mem_unitCube ▸ hC.normalized
   grounded u hu h0 := h u hu ▸ hC.grounded u hu h0
   margins i t ht := h _ (update_mem_unitCube one_mem_unitCube i ht) ▸ hC.margins i t ht
   increasing u hu v hv huv := by
     have : boxVolume D u v = boxVolume C u v :=
       sum_congr rfl fun s _ => by rw [h _ (piecewise_mem_unitCube hu hv s)]
     exact this ▸ hC.increasing u hu v hv huv
-
-lemma IsCopula.apply_one {C : (ι → ℝ) → ℝ} (hC : IsCopula C) [Nonempty ι] : C 1 = 1 := by
-  obtain ⟨a⟩ := ‹Nonempty ι›
-  simpa using hC.margins a 1 one_mem_Icc
 
 /-! ### The flashlight formula -/
 
@@ -233,13 +233,11 @@ lemma measure_compl_le_one_eq_zero (μ : Measure (ι → ℝ)) [IsProbabilityMea
     {C : (ι → ℝ) → ℝ} (hC : IsCopula C)
     (hμ : ∀ u ∈ unitCube ι, C u = μ.real {x | ∀ i, x i ≤ u i}) :
     μ {x : ι → ℝ | ∀ i, x i ≤ 1}ᶜ = 0 := by
-  rcases isEmpty_or_nonempty ι with hι | hι
-  · simp
   have hmeas : MeasurableSet {x : ι → ℝ | ∀ i, x i ≤ 1} := by measurability
   have h1 : μ.real {x : ι → ℝ | ∀ i, x i ≤ 1} = 1 := by
     have h := hμ 1 one_mem_unitCube
     simp only [Pi.one_apply] at h
-    rw [← h, hC.apply_one]
+    rw [← h, hC.normalized]
   rw [← measureReal_eq_zero_iff, measureReal_compl hmeas, h1, probReal_univ, sub_self]
 
 /-- `P_U((⋂_{i ∈ A} {U_i ≤ 1 - u_i}) ∩ (⋂_{i ∈ S̄} {U_i ≤ u_i})) =
@@ -401,6 +399,18 @@ end Increasing
 is a `d`-copula. -/
 theorem isCopula_flashlightSum {C : (ι → ℝ) → ℝ} (hC : IsCopula C) (S : Finset ι) :
     IsCopula (flashlightSum C S) where
+  -- `C^F_{α,S}(1, …, 1) = 1`. (Not part of the original proof, where it follows from 2.)
+  -- `κ_{S,∅}(1, …, 1) = (1, …, 1)`, and for `A ≠ ∅` some `κ_{S,A}(i, (1, …, 1)) = 1 - 1 = 0`.
+  normalized := by
+    rw [flashlightSum, sum_eq_single_of_mem ∅ (empty_mem_powerset S)]
+    · have hk : kappa S ∅ (1 : ι → ℝ) = 1 := by
+        funext i
+        by_cases hiS : i ∈ S <;> simp [kappa, hiS]
+      rw [hk, hC.normalized, card_empty, pow_zero, one_mul]
+    · intro A _ hA0
+      obtain ⟨i, hi⟩ := nonempty_iff_ne_empty.2 hA0
+      rw [hC.grounded _ (kappa_mem_unitCube S A one_mem_unitCube) ⟨i, by simp [kappa, hi]⟩,
+        mul_zero]
   -- 1. Let `u ∈ [0,1]^d` with `∃ a ∈ I : u_a = 0`. We distinguish two cases:
   grounded u hu := by
     rintro ⟨a, ha0⟩
@@ -474,8 +484,7 @@ theorem isCopula_flashlightSum {C : (ι → ℝ) → ℝ} (hC : IsCopula C) (S :
           · simp [kappa]
           · by_cases hiS : i ∈ S <;> simp [kappa, hi, hiS]
         -- `= C_α(1, …, 1) - C_α(1, …, 1, 1 - u_a, 1, …, 1) = 1 - (1 - u_a) = u_a`.
-        have h1 : C 1 = 1 := by simpa using hC.margins a 1 one_mem_Icc
-        rw [hk0, hka, h1, hC.margins a (1 - t) (one_sub_mem_Icc ht), card_empty,
+        rw [hk0, hka, hC.normalized, hC.margins a (1 - t) (one_sub_mem_Icc ht), card_empty,
           card_singleton]
         ring
       · -- `(3)`: `∀ A ⊆ S, A ≠ ∅, A ≠ {a} : ∃ i ∈ A : i ≠ a`, remainder as in `(1)`.
