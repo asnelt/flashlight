@@ -3,9 +3,13 @@ name: Update Dependencies
 on:
   workflow_dispatch:
 
+permissions: {}
+
 jobs:
   check-for-updates:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     outputs:
       is-update-available: ${{ steps.check-for-updates.outputs.is-update-available }}
       new-tags: ${{ steps.check-for-updates.outputs.new-tags }}

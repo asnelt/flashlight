@@ -1,5 +1,5 @@
 name = "Flashlight"
-version = "0.2.0"
+version = "0.3.0"
 versionTags = {not = {startsWith = "v4."}}
 description = "Lean 4 formalization of the flashlight transformation of copulas (Onken et al., PLoS Comput Biol 2009)"
 keywords = ["math", "copula", "probability", "measure-theory"]

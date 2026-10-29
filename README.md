@@ -40,11 +40,12 @@ theorem flashlight (μ : Measure (ι → ℝ)) [IsProbabilityMeasure μ]
     (hμ : ∀ u ∈ unitCube ι, C u = μ.real {x | ∀ i, x i ≤ u i}) (S : Finset ι) :
     IsCopula (flashlightMeasure μ S) ∧
       ∀ u ∈ unitCube ι,
-        flashlightMeasure μ S u = ∑ A ∈ S.powerset, (-1) ^ A.card * C (kappa S A u)
+        flashlightMeasure μ S u = ∑ A ∈ S.powerset, (-1) ^ #A * C (kappa S A u)
 ```
 
-The index set `{1, …, d}` is modelled by an arbitrary finite type `ι`. `IsCopula` requires the
-function to be grounded, to have uniform margins and to be `d`-increasing on `[0,1]^ι`.
+The index set `{1, …, d}` is modeled by an arbitrary finite type `ι`. `IsCopula` requires the
+function to satisfy `C(1, …, 1) = 1`, to be grounded, to have uniform marginal distributions and
+to be `d`-increasing on `[0,1]^ι`.
 
 ### Proof structure
 
@@ -52,8 +53,8 @@ The formalization follows the proof in Text S1:
 
 * **Lemma** (`restrictMeasure`): `P^A := P(• ∩ A)` is a measure.
 * **Flashlight formula** (`flashlightMeasure_eq_flashlightSum`): a `calc` chain.
-* **Copula properties** (`isCopula_flashlightSum`): groundedness, uniform margins,
-  and `d`-increasing property.
+* **Copula properties** (`isCopula_flashlightSum`): normalization, groundedness,
+  uniform marginal distributions and `d`-increasing property.
 
 One step of the original proof is made explicit. Identifying
 `P_U((⋂_{i ∈ A} {U_i ≤ 1 - u_i}) ∩ (⋂_{i ∈ S̄} {U_i ≤ u_i}))` with `C(κ_{S,A}(1, u), …)`

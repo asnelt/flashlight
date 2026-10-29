@@ -20,12 +20,14 @@ where `S̄ = I \ S` and `κ_{S,A}(i, u)` is `1 - u_i` if `i ∈ A`, `1` if `i �
 
 ## Formalization notes
 
-* The index set `I = {1, …, d}` is modelled by an arbitrary finite type `ι`, and `P_U` by a
+* The index set `I = {1, …, d}` is modeled by an arbitrary finite type `ι`, and `P_U` by a
   probability measure `μ` on `ι → ℝ` whose distribution function agrees with `C_α` on `[0,1]^ι`.
 * A corner `z ∈ ×_{i=1}^d {u_i, v_i}` of a box `B = ×_{i=1}^d [u_i, v_i]` is indexed by the set
   `s` of coordinates with `z_k = v_k`, i.e. `z = s.piecewise v u`. Then
   `N_I(z, u, v) = |sᶜ|`, the number of coordinates at the lower bound.
-* The sieve formula for measures [Comtet1974] is not available in Mathlib and is proved below.
+* The sieve formula for measures [Comtet1974] is proved below in the form used in Text S1, with
+  the intersections grouped by cardinality. Mathlib's `measureReal_biUnion_eq_sum_powerset` is an
+  equivalent ungrouped form.
 * The step `P_U((⋂_{i ∈ A} {U_i ≤ 1 - u_i}) ∩ (⋂_{i ∈ S̄} {U_i ≤ u_i})) = C_α(κ_{S,A}(1, u), …)`
   implicitly replaces the events `{U_i ≤ 1}` for `i ∈ S \ A` by the whole space. This is
   justified here explicitly: since `C_α(1, …, 1) = 1`, the event `⋂_{i ∈ I} {U_i ≤ 1}` has
@@ -42,10 +44,6 @@ open MeasureTheory Finset
 
 noncomputable section
 
-set_option linter.unusedSectionVars false
-set_option linter.unusedFintypeInType false
-set_option linter.unusedDecidableInType false
-
 namespace Flashlight
 
 /-! ### The lemma -/
@@ -55,7 +53,10 @@ section Lemma
 variable {Ω : Type*} [MeasurableSpace Ω]
 
 /-- **Lemma.** Let `(Ω, 𝓕, P)` be a probability space with `A ∈ 𝓕`. Then `P^A := P(• ∩ A)` is a
-measure on `𝓕`. -/
+measure on `𝓕`.
+
+This is Mathlib's `P.restrict A` (see `restrictMeasure_eq_restrict`). It is constructed here
+directly to follow the informal proof. -/
 def restrictMeasure (P : Measure Ω) (A : Set Ω) (hA : MeasurableSet A) : Measure Ω :=
   -- Verification of the measure properties:
   Measure.ofMeasurable (fun E _ => P (E ∩ A))
@@ -69,14 +70,22 @@ def restrictMeasure (P : Measure Ω) (A : Set Ω) (hA : MeasurableSet A) : Measu
         (fun i j hij => (hdisj hij).mono Set.inter_subset_left Set.inter_subset_left)
         fun i => (hE i).inter hA)
 
+/-- `P^A(E) = P(E ∩ A)` for measurable `E`. -/
 lemma restrictMeasure_apply (P : Measure Ω) {A : Set Ω} (hA : MeasurableSet A) {E : Set Ω}
     (hE : MeasurableSet E) : restrictMeasure P A hA E = P (E ∩ A) :=
   Measure.ofMeasurable_apply E hE
 
+/-- `P^A(E) = P(E ∩ A)` for measurable `E`, for the real-valued measure. -/
 lemma restrictMeasure_real_apply (P : Measure Ω) {A : Set Ω} (hA : MeasurableSet A) {E : Set Ω}
     (hE : MeasurableSet E) : (restrictMeasure P A hA).real E = P.real (E ∩ A) := by
   rw [measureReal_def, restrictMeasure_apply P hA hE, measureReal_def]
 
+/-- `P^A` coincides with Mathlib's restriction `P.restrict A`. -/
+lemma restrictMeasure_eq_restrict (P : Measure Ω) {A : Set Ω} (hA : MeasurableSet A) :
+    restrictMeasure P A hA = P.restrict A :=
+  Measure.ext fun E hE => by rw [restrictMeasure_apply P hA hE, Measure.restrict_apply hE]
+
+/-- `P^A` is finite if `P` is, since `P^A(Ω) = P(A)`. -/
 instance (P : Measure Ω) [IsFiniteMeasure P] {A : Set Ω} (hA : MeasurableSet A) :
     IsFiniteMeasure (restrictMeasure P A hA) :=
   ⟨by rw [restrictMeasure_apply P hA MeasurableSet.univ]; exact measure_lt_top _ _⟩
@@ -87,33 +96,10 @@ end Lemma
 
 section Sieve
 
-variable {Ω ι : Type*} [MeasurableSpace Ω] [DecidableEq ι]
+variable {Ω ι : Type*} [MeasurableSpace Ω]
 
-/-- Inclusion–exclusion, complement form. -/
-lemma measureReal_inter_biInter_compl (ν : Measure Ω) [IsFiniteMeasure ν] (E : ι → Set Ω)
-    (hE : ∀ i, MeasurableSet (E i)) (S : Finset ι) {F : Set Ω} (hF : MeasurableSet F) :
-    ν.real (F ∩ ⋂ i ∈ S, (E i)ᶜ) = ∑ A ∈ S.powerset, (-1) ^ #A * ν.real (F ∩ ⋂ i ∈ A, E i) := by
-  induction S using Finset.induction_on generalizing F with
-  | empty => simp
-  | insert a S ha ih =>
-    have hX : MeasurableSet (⋂ i ∈ S, (E i)ᶜ) :=
-      Finset.measurableSet_biInter _ fun i _ => (hE i).compl
-    have hset : F ∩ ⋂ i ∈ insert a S, (E i)ᶜ =
-        (F ∩ ⋂ i ∈ S, (E i)ᶜ) \ ((F ∩ E a) ∩ ⋂ i ∈ S, (E i)ᶜ) := by
-      rw [Finset.set_biInter_insert]
-      ext x
-      simp only [Set.mem_inter_iff, Set.mem_compl_iff, Set.mem_sdiff]
-      tauto
-    have hsub : (F ∩ E a) ∩ ⋂ i ∈ S, (E i)ᶜ ⊆ F ∩ ⋂ i ∈ S, (E i)ᶜ :=
-      fun x hx => ⟨hx.1.1, hx.2⟩
-    rw [hset, measureReal_sdiff hsub ((hF.inter (hE a)).inter hX),
-      ih hF, ih (hF.inter (hE a)), sum_powerset_insert ha, sub_eq_add_neg, ← sum_neg_distrib]
-    congr 1
-    refine sum_congr rfl fun A hA => ?_
-    have haA : a ∉ A := fun h => ha (mem_powerset.1 hA h)
-    rw [card_insert_of_notMem haA, Finset.set_biInter_insert, pow_succ, Set.inter_assoc]
-    ring
-
+/-- Splitting off the summand `k = 0`:
+`∑_{k=0}^n (-1)^k g(k) = g(0) - ∑_{k=1}^n (-1)^{k-1} g(k)`. -/
 lemma sum_range_succ_neg_one_pow (g : ℕ → ℝ) (n : ℕ) :
     ∑ k ∈ range (n + 1), (-1) ^ k * g k = g 0 - ∑ k ∈ Icc 1 n, (-1) ^ (k - 1) * g k := by
   induction n with
@@ -123,24 +109,22 @@ lemma sum_range_succ_neg_one_pow (g : ℕ → ℝ) (n : ℕ) :
     ring
 
 /-- **Sieve formula** (inclusion–exclusion principle) for finite measures:
-`ν(⋃_{i ∈ S} E_i) = ∑_{k=1}^{|S|} (-1)^{k-1} ∑_{A ⊆ S, |A| = k} ν(⋂_{i ∈ A} E_i)`. -/
+`ν(⋃_{i ∈ S} E_i) = ∑_{k=1}^{|S|} (-1)^{k-1} ∑_{A ⊆ S, |A| = k} ν(⋂_{i ∈ A} E_i)`.
+This is Mathlib's `measureReal_biUnion_eq_sum_powerset` with the sets `A` grouped by `|A|`. -/
 lemma measureReal_biUnion_sieve (ν : Measure Ω) [IsFiniteMeasure ν] (E : ι → Set Ω)
     (hE : ∀ i, MeasurableSet (E i)) (S : Finset ι) :
     ν.real (⋃ i ∈ S, E i) =
       ∑ k ∈ Icc 1 #S, (-1) ^ (k - 1) * ∑ A ∈ powersetCard k S, ν.real (⋂ i ∈ A, E i) := by
-  have hU : MeasurableSet (⋃ i ∈ S, E i) := Finset.measurableSet_biUnion _ fun i _ => hE i
-  have h := measureReal_inter_biInter_compl ν E hE S MeasurableSet.univ
-  rw [← Set.compl_iUnion₂, Set.univ_inter, measureReal_compl hU, sum_powerset] at h
-  simp only [Set.univ_inter] at h
-  have h' : ∑ k ∈ range (#S + 1), ∑ A ∈ powersetCard k S, (-1) ^ #A * ν.real (⋂ i ∈ A, E i) =
-      ∑ k ∈ range (#S + 1), (-1) ^ k * ∑ A ∈ powersetCard k S, ν.real (⋂ i ∈ A, E i) := by
-    refine sum_congr rfl fun k _ => ?_
-    rw [mul_sum]
-    exact sum_congr rfl fun A hA => by rw [(mem_powersetCard.1 hA).2]
-  rw [h', sum_range_succ_neg_one_pow] at h
-  simp only [powersetCard_zero, sum_singleton] at h
-  rw [show (⋂ i ∈ (∅ : Finset ι), E i) = Set.univ by simp] at h
-  linarith
+  classical
+  -- group the sets `A ≠ ∅` by `|A| = k + 1`; the empty set (`k = 0`) does not contribute
+  rw [measureReal_biUnion_eq_sum_powerset fun i _ => hE i, sum_filter, sum_powerset,
+    sum_range_succ', ← Ico_add_one_right_eq_Icc, sum_Ico_eq_sum_range, Nat.add_sub_cancel]
+  simp only [powersetCard_zero, sum_singleton, Finset.not_nonempty_empty, ite_false, add_zero]
+  refine sum_congr rfl fun k _ => ?_
+  rw [add_comm 1 k, Nat.add_sub_cancel, mul_sum]
+  refine sum_congr rfl fun A hA => ?_
+  obtain ⟨-, hA⟩ := mem_powersetCard.1 hA
+  simp [card_pos.1 (by omega : 0 < #A), hA, pow_succ]
 
 end Sieve
 
@@ -149,7 +133,7 @@ end Sieve
 variable {ι : Type*} [Fintype ι] [DecidableEq ι]
 
 /-- The unit cube `[0,1]^ι`. -/
-def unitCube (ι : Type*) : Set (ι → ℝ) := {u | ∀ i, u i ∈ Set.Icc (0 : ℝ) 1}
+def unitCube (ι : Type*) : Set (ι → ℝ) := {u | ∀ i, u i ∈ unitInterval}
 
 /-- `V_C(B) = ∑_{z ∈ ×_{i=1}^d {u_i, v_i}} (-1)^{N_I(z, u, v)} C(z)` for the box
 `B = ×_{i=1}^d [u_i, v_i]`, where the corner `z = s.piecewise v u` takes the value `v_k` for
@@ -159,13 +143,13 @@ def boxVolume (C : (ι → ℝ) → ℝ) (u v : ι → ℝ) : ℝ :=
 
 /-- `C` is a `d`-copula (only its values on `[0,1]^ι` matter). -/
 structure IsCopula (C : (ι → ℝ) → ℝ) : Prop where
-  /-- `C(1, …, 1) = 1`. For `d ≥ 1` this follows from the uniform margins; it is stated
-  explicitly so that the definition is also correct in dimension `0`. -/
+  /-- `C(1, …, 1) = 1`. For `d ≥ 1` this follows from the uniform marginal distributions; it is
+  stated explicitly so that the definition is also correct in dimension `0`. -/
   normalized : C 1 = 1
   /-- `C` is grounded. -/
   grounded : ∀ u ∈ unitCube ι, (∃ i, u i = 0) → C u = 0
-  /-- `C` has uniform margins. -/
-  margins : ∀ i, ∀ t ∈ Set.Icc (0 : ℝ) 1, C (Function.update 1 i t) = t
+  /-- `C` has uniform marginal distributions. -/
+  marginals : ∀ i, ∀ t ∈ unitInterval, C (Function.update 1 i t) = t
   /-- `C` is `d`-increasing. -/
   increasing : ∀ u ∈ unitCube ι, ∀ v ∈ unitCube ι, u ≤ v → 0 ≤ boxVolume C u v
 
@@ -186,20 +170,25 @@ def flashlightMeasure (μ : Measure (ι → ℝ)) (S : Finset ι) (u : ι → �
 
 /-! ### Elementary lemmas -/
 
-lemma one_mem_Icc : (1 : ℝ) ∈ Set.Icc (0 : ℝ) 1 := ⟨zero_le_one, le_rfl⟩
+/-- `t ∈ [0,1]` implies `1 - t ∈ [0,1]`. -/
+lemma one_sub_mem_unitInterval {t : ℝ} (ht : t ∈ unitInterval) : 1 - t ∈ unitInterval :=
+  Set.Icc.mem_iff_one_sub_mem.1 ht
 
-lemma one_sub_mem_Icc {t : ℝ} (ht : t ∈ Set.Icc (0 : ℝ) 1) : 1 - t ∈ Set.Icc (0 : ℝ) 1 :=
-  ⟨by linarith [ht.2], by linarith [ht.1]⟩
+omit [Fintype ι] [DecidableEq ι] in
+/-- `(1, …, 1) ∈ [0,1]^d`. -/
+lemma one_mem_unitCube : (1 : ι → ℝ) ∈ unitCube ι := fun _ => unitInterval.one_mem
 
-lemma one_mem_unitCube : (1 : ι → ℝ) ∈ unitCube ι := fun _ => one_mem_Icc
-
+omit [Fintype ι] in
+/-- Replacing one coordinate of a point of `[0,1]^d` by `t ∈ [0,1]` stays in `[0,1]^d`. -/
 lemma update_mem_unitCube {u : ι → ℝ} (hu : u ∈ unitCube ι) (a : ι) {t : ℝ}
-    (ht : t ∈ Set.Icc (0 : ℝ) 1) : Function.update u a t ∈ unitCube ι := by
+    (ht : t ∈ unitInterval) : Function.update u a t ∈ unitCube ι := by
   intro i
   rcases eq_or_ne i a with rfl | hi
   · simpa using ht
   · simpa [hi] using hu i
 
+omit [Fintype ι] in
+/-- The corners of a box with corners `u, v ∈ [0,1]^d` lie in `[0,1]^d`. -/
 lemma piecewise_mem_unitCube {u v : ι → ℝ} (hu : u ∈ unitCube ι) (hv : v ∈ unitCube ι)
     (s : Finset ι) : s.piecewise v u ∈ unitCube ι := by
   intro i
@@ -207,19 +196,21 @@ lemma piecewise_mem_unitCube {u v : ι → ℝ} (hu : u ∈ unitCube ι) (hv : v
   · simpa [hi] using hv i
   · simpa [hi] using hu i
 
+omit [Fintype ι] in
+/-- `u ∈ [0,1]^d` implies `(κ_{S,A}(1, u), …, κ_{S,A}(d, u)) ∈ [0,1]^d`. -/
 lemma kappa_mem_unitCube (S A : Finset ι) {u : ι → ℝ} (hu : u ∈ unitCube ι) :
     kappa S A u ∈ unitCube ι := by
   intro i
   simp only [kappa]
   split_ifs
-  exacts [one_sub_mem_Icc (hu i), one_mem_Icc, hu i]
+  exacts [one_sub_mem_unitInterval (hu i), unitInterval.one_mem, hu i]
 
 /-- Being a copula only depends on the values on the unit cube. -/
 lemma IsCopula.congr {C D : (ι → ℝ) → ℝ} (hC : IsCopula C)
     (h : ∀ u ∈ unitCube ι, C u = D u) : IsCopula D where
   normalized := h 1 one_mem_unitCube ▸ hC.normalized
   grounded u hu h0 := h u hu ▸ hC.grounded u hu h0
-  margins i t ht := h _ (update_mem_unitCube one_mem_unitCube i ht) ▸ hC.margins i t ht
+  marginals i t ht := h _ (update_mem_unitCube one_mem_unitCube i ht) ▸ hC.marginals i t ht
   increasing u hu v hv huv := by
     have : boxVolume D u v = boxVolume C u v :=
       sum_congr rfl fun s _ => by rw [h _ (piecewise_mem_unitCube hu hv s)]
@@ -274,11 +265,11 @@ theorem flashlightMeasure_eq_flashlightSum (μ : Measure (ι → ℝ)) [IsProbab
     (hμ : ∀ u ∈ unitCube ι, C u = μ.real {x | ∀ i, x i ≤ u i}) (S : Finset ι)
     {u : ι → ℝ} (hu : u ∈ unitCube ι) :
     flashlightMeasure μ S u = flashlightSum C S u := by
-  -- We start with Eqn (eq:Flashlight). By definition `P_U` is a probability mass function.
+  -- We start with the definition of `C^F_{α,S}`. By assumption, `P_U` is a probability measure.
   -- Let `B := ⋂_{i ∈ S̄} {U_i ≤ u_i}`.
-  set B : Set (ι → ℝ) := {x | ∀ i ∉ S, x i ≤ u i} with hB_def
+  set B : Set (ι → ℝ) := {x | ∀ i ∉ S, x i ≤ u i}
   have hB : MeasurableSet B := by measurability
-  set E : ι → Set (ι → ℝ) := fun i => {x | x i ≤ 1 - u i} with hE_def
+  set E : ι → Set (ι → ℝ) := fun i => {x | x i ≤ 1 - u i}
   have hE : ∀ i, MeasurableSet (E i) := fun i => by measurability
   -- By the lemma, `P_U^B` is a measure.
   set PB := restrictMeasure μ B hB
@@ -287,7 +278,7 @@ theorem flashlightMeasure_eq_flashlightSum (μ : Measure (ι → ℝ)) [IsProbab
   have hPBB : PB.real Set.univ = PB.real B := by
     rw [restrictMeasure_real_apply μ hB MeasurableSet.univ, restrictMeasure_real_apply μ hB hB,
       Set.univ_inter, Set.inter_self]
-  -- We can apply the generalized inclusion exclusion principle for arbitrary measures:
+  -- We can apply the inclusion–exclusion principle for finite measures:
   calc flashlightMeasure μ S u
       -- `= P_U^B(⋂_{i ∈ S} {U_i > 1 - u_i})`
       _ = PB.real (⋂ i ∈ S, {x | 1 - u i < x i}) := by
@@ -341,15 +332,17 @@ def chi (A : Finset ι) (i : ι) : ℝ := if i ∈ A then 1 else 0
 /-- `ψ_S(z_k) := χ_S(k)(1 - z_k) + χ_{S̄}(k)(z_k)`. -/
 def psi (S : Finset ι) (z : ι → ℝ) : ι → ℝ := fun k => chi S k * (1 - z k) + chi Sᶜ k * z k
 
+/-- `κ_{S,S}(k, z) = χ_S(k)(1 - z_k) + χ_{S̄}(k)(z_k) = ψ_S(z_k)`. -/
 lemma kappa_self_eq_psi (S : Finset ι) (z : ι → ℝ) : kappa S S z = psi S z := by
   funext k
   by_cases hk : k ∈ S <;> simp [kappa, psi, chi, hk]
 
+/-- `ψ_S` maps `[0,1]^d` into `[0,1]^d`. -/
 lemma psi_mem_unitCube (S : Finset ι) {z : ι → ℝ} (hz : z ∈ unitCube ι) :
     psi S z ∈ unitCube ι := by
   intro k
   by_cases hk : k ∈ S
-  · simpa [psi, chi, hk] using one_sub_mem_Icc (hz k)
+  · simpa [psi, chi, hk] using one_sub_mem_unitInterval (hz k)
   · simpa [psi, chi, hk] using hz k
 
 /-- A corner `z` with `z_{s_A} = v_{s_A}` and the corner with `z_{s_A} = u_{s_A}` have opposite
@@ -440,7 +433,7 @@ theorem isCopula_flashlightSum {C : (ι → ℝ) → ℝ} (hC : IsCopula C) (S :
       rw [hk, card_insert_of_notMem haA, pow_succ]
       ring
   -- 2. Let `u ∈ [0,1]^d` with `u_i = 1` if `i ≠ a`. We distinguish the same cases:
-  margins a t ht := by
+  marginals a t ht := by
     by_cases ha : a ∉ S
     · -- For `a ∈ S̄`:
       -- `C^F_{α,S}(u) = (-1)^{|∅|} C_α(κ_{S,∅}(1, u), …, κ_{S,∅}(d, u))`
@@ -454,7 +447,7 @@ theorem isCopula_flashlightSum {C : (ι → ℝ) → ℝ} (hC : IsCopula C) (S :
           rcases eq_or_ne i a with rfl | hi
           · simp [kappa, ha]
           · by_cases hiS : i ∈ S <;> simp [kappa, hi, hiS]
-        rw [hk, hC.margins a t ht, card_empty, pow_zero, one_mul]
+        rw [hk, hC.marginals a t ht, card_empty, pow_zero, one_mul]
       · -- `(1)`: `∀ A ⊆ S, A ≠ ∅ : a ∈ S̄ ⇒ a ∉ A ⇒ ∃ i ∈ A : i ≠ a`, thus
         -- `κ_{S,A}(i, u) = 1 - u_i = 0` (as `i ≠ a`), and the summand is `(-1)^|A| 0 = 0`.
         intro A hA hA0
@@ -484,8 +477,8 @@ theorem isCopula_flashlightSum {C : (ι → ℝ) → ℝ} (hC : IsCopula C) (S :
           · simp [kappa]
           · by_cases hiS : i ∈ S <;> simp [kappa, hi, hiS]
         -- `= C_α(1, …, 1) - C_α(1, …, 1, 1 - u_a, 1, …, 1) = 1 - (1 - u_a) = u_a`.
-        rw [hk0, hka, hC.normalized, hC.margins a (1 - t) (one_sub_mem_Icc ht), card_empty,
-          card_singleton]
+        rw [hk0, hka, hC.normalized, hC.marginals a (1 - t) (one_sub_mem_unitInterval ht),
+          card_empty, card_singleton]
         ring
       · -- `(3)`: `∀ A ⊆ S, A ≠ ∅, A ≠ {a} : ∃ i ∈ A : i ≠ a`, remainder as in `(1)`.
         rintro A hA ⟨hA0, hAa⟩

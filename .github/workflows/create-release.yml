@@ -8,6 +8,8 @@ on:
     paths:
       - 'lean-toolchain'
 
+permissions: {}
+
 jobs:
   lean-release-tag:
     name: Add Lean release tag
