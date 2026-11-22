@@ -15,8 +15,15 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: leanprover/lean-action@v1
-      - name: Check axioms
-        run: lake env lean scripts/CheckAxioms.lean
+      # `lake comparator` sandboxes the build with bubblewrap, which needs unprivileged user
+      # namespaces; Ubuntu restricts these through AppArmor by default.
+      - name: Install bubblewrap
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bubblewrap
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      - name: Check the solution against the challenge
+        run: lake comparator
 
   docs:
     # Only pushes to the default branch publish the documentation.

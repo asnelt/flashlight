@@ -3,12 +3,16 @@ Copyright (c) 2026 Arno Onken. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Arno Onken
 -/
-import Mathlib
+module
+
+public import Flashlight.Defs
 
 /-!
 # The flashlight transformation of a copula
 
-This file formalizes the following theorem and its proof:
+This file proves the following theorem; the definitions in its statement are in
+`Flashlight/Defs.lean`, and `Challenge.lean` repeats them together with the statement, without
+proof:
 
 **Theorem.** Let `C_α` be a `d`-copula, `I := {1, …, d}`, `S ⊆ I`,
 `P_U(⋂_{i ∈ I} {U_i ≤ u_i}) := C_α(u)` a measure, and
@@ -25,9 +29,9 @@ where `S̄ = I \ S` and `κ_{S,A}(i, u)` is `1 - u_i` if `i ∈ A`, `1` if `i �
 * A corner `z ∈ ×_{i=1}^d {u_i, v_i}` of a box `B = ×_{i=1}^d [u_i, v_i]` is indexed by the set
   `s` of coordinates with `z_k = v_k`, i.e. `z = s.piecewise v u`. Then
   `N_I(z, u, v) = |sᶜ|`, the number of coordinates at the lower bound.
-* The sieve formula for measures [Comtet1974] is proved below in the form used in Text S1, with
-  the intersections grouped by cardinality. Mathlib's `measureReal_biUnion_eq_sum_powerset` is an
-  equivalent ungrouped form.
+* The sieve formula for measures [Comtet1974] is used in the form of Text S1, with the
+  intersections grouped by cardinality. It is derived below from Mathlib's ungrouped form
+  `measureReal_biUnion_eq_sum_powerset`.
 * The step `P_U((⋂_{i ∈ A} {U_i ≤ 1 - u_i}) ∩ (⋂_{i ∈ S̄} {U_i ≤ u_i})) = C_α(κ_{S,A}(1, u), …)`
   implicitly replaces the events `{U_i ≤ 1}` for `i ∈ S \ A` by the whole space. This is
   justified here explicitly: since `C_α(1, …, 1) = 1`, the event `⋂_{i ∈ I} {U_i ≤ 1}` has
@@ -41,6 +45,8 @@ where `S̄ = I \ S` and `κ_{S,A}(i, u)` is `1 - u_i` if `i ∈ A`, `1` if `i �
 -/
 
 open MeasureTheory Finset
+
+@[expose] public section
 
 noncomputable section
 
@@ -132,41 +138,13 @@ end Sieve
 
 variable {ι : Type*} [Fintype ι] [DecidableEq ι]
 
-/-- The unit cube `[0,1]^ι`. -/
-def unitCube (ι : Type*) : Set (ι → ℝ) := {u | ∀ i, u i ∈ unitInterval}
-
-/-- `V_C(B) = ∑_{z ∈ ×_{i=1}^d {u_i, v_i}} (-1)^{N_I(z, u, v)} C(z)` for the box
-`B = ×_{i=1}^d [u_i, v_i]`, where the corner `z = s.piecewise v u` takes the value `v_k` for
-`k ∈ s` and `u_k` otherwise, so that `N_I(z, u, v) = |sᶜ|`. -/
-def boxVolume (C : (ι → ℝ) → ℝ) (u v : ι → ℝ) : ℝ :=
-  ∑ s : Finset ι, (-1) ^ sᶜ.card * C (s.piecewise v u)
-
-/-- `C` is a `d`-copula (only its values on `[0,1]^ι` matter). -/
-structure IsCopula (C : (ι → ℝ) → ℝ) : Prop where
-  /-- `C(1, …, 1) = 1`. For `d ≥ 1` this follows from the uniform marginal distributions; it is
-  stated explicitly so that the definition is also correct in dimension `0`. -/
-  normalized : C 1 = 1
-  /-- `C` is grounded. -/
-  grounded : ∀ u ∈ unitCube ι, (∃ i, u i = 0) → C u = 0
-  /-- `C` has uniform marginal distributions. -/
-  marginals : ∀ i, ∀ t ∈ unitInterval, C (Function.update 1 i t) = t
-  /-- `C` is `d`-increasing. -/
-  increasing : ∀ u ∈ unitCube ι, ∀ v ∈ unitCube ι, u ≤ v → 0 ≤ boxVolume C u v
-
-/-! ### The objects of the theorem -/
-
-/-- `κ_{S,A}(i, u)` is `1 - u_i` if `i ∈ A`, `1` if `i ∈ S \ A` and `u_i` if `i ∈ S̄`. -/
-def kappa (S A : Finset ι) (u : ι → ℝ) : ι → ℝ :=
-  fun i => if i ∈ A then 1 - u i else if i ∈ S then 1 else u i
+/-! The definitions `unitCube`, `boxVolume`, `IsCopula`, `kappa` and `flashlightMeasure` are in
+`Flashlight/Defs.lean`. -/
 
 /-- The right-hand side of the flashlight formula,
 `∑_{A ⊆ S} (-1)^|A| C_α(κ_{S,A}(1, u), …, κ_{S,A}(d, u))`. -/
 def flashlightSum (C : (ι → ℝ) → ℝ) (S : Finset ι) (u : ι → ℝ) : ℝ :=
   ∑ A ∈ S.powerset, (-1) ^ #A * C (kappa S A u)
-
-/-- `C^F_{α,S}(u) := P_U((⋂_{i ∈ S} {U_i > 1 - u_i}) ∩ (⋂_{i ∈ S̄} {U_i ≤ u_i}))`. -/
-def flashlightMeasure (μ : Measure (ι → ℝ)) (S : Finset ι) (u : ι → ℝ) : ℝ :=
-  μ.real {x | (∀ i ∈ S, 1 - u i < x i) ∧ ∀ i ∉ S, x i ≤ u i}
 
 /-! ### Elementary lemmas -/
 

@@ -32,7 +32,7 @@ C^F_S(u) = ∑_{A ⊆ S} (-1)^|A| C(κ_{S,A}(1, u), …, κ_{S,A}(d, u)),
 
 where `κ_{S,A}(i, u)` is `1 - u_i` for `i ∈ A`, `1` for `i ∈ S \ A`, and `u_i` for `i ∉ S`.
 
-In Lean, this is `Flashlight.flashlight` in [`Flashlight.lean`](Flashlight.lean):
+In Lean, this is `Flashlight.flashlight`, stated in [`Challenge.lean`](Challenge.lean):
 
 ```lean
 theorem flashlight (μ : Measure (ι → ℝ)) [IsProbabilityMeasure μ]
@@ -46,6 +46,25 @@ theorem flashlight (μ : Measure (ι → ℝ)) [IsProbabilityMeasure μ]
 The index set `{1, …, d}` is modeled by an arbitrary finite type `ι`. `IsCopula` requires the
 function to satisfy `C(1, …, 1) = 1`, to be grounded, to have uniform marginal distributions and
 to be `d`-increasing on `[0,1]^ι`.
+
+### What to review
+
+The repository follows the challenge/solution layout checked by `lake comparator`:
+
+| File | Contents |
+| --- | --- |
+| [`Challenge.lean`](Challenge.lean) | the definitions used in the statement (`unitCube`, `boxVolume`, `IsCopula`, `kappa`, `flashlightMeasure`) and the statement of the theorem, proved by `sorry`; imports only Mathlib |
+| [`Flashlight/Defs.lean`](Flashlight/Defs.lean) | the same definitions, for the library |
+| [`Flashlight.lean`](Flashlight.lean) | the proof |
+| [`Solution.lean`](Solution.lean) | the solution module for `lake comparator`, which imports `Flashlight` |
+| [`comparator.json`](comparator.json) | the theorem to compare and the permitted axioms |
+| [`formalization.yaml`](formalization.yaml) | metadata in the [formalization.yaml](https://github.com/mathlib-initiative/formalization.yaml) v0.4 format: sources, status, fidelity, review |
+
+To trust the result, it suffices to read `Challenge.lean`, which contains no proofs.
+`lake comparator` checks in a sandbox that `Solution.lean` proves exactly the statement in
+`Challenge.lean` with identical definitions, that the Lean kernel accepts the proof, and that it
+uses no axioms beyond `propext`, `Classical.choice` and `Quot.sound`. CI runs this check on every
+push and pull request.
 
 ### Proof structure
 
@@ -62,8 +81,6 @@ replaces the events `{U_i ≤ 1}`, `i ∈ S \ A`, by the whole space. This is ju
 `measure_compl_le_one_eq_zero` and `measureReal_eq_kappa`: since `C(1, …, 1) = 1`, the event
 `⋂_i {U_i ≤ 1}` has probability one.
 
-The proof uses no axioms beyond the standard ones (`propext`, `Classical.choice`, `Quot.sound`).
-
 ## Building
 
 Install Lean via [elan](https://github.com/leanprover/elan), then run:
@@ -73,6 +90,13 @@ git clone https://github.com/asnelt/flashlight.git
 cd flashlight
 lake exe cache get
 lake build
+```
+
+To check the proof against the challenge, install
+[bubblewrap](https://github.com/containers/bubblewrap) (e.g. `apt install bubblewrap`) and run:
+
+```bash
+lake comparator
 ```
 
 ## Documentation

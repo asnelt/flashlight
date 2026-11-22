@@ -1,5 +1,5 @@
 name = "Flashlight"
-version = "0.3.0"
+version = "0.4.0"
 versionTags = {not = {startsWith = "v4."}}
 description = "Lean 4 formalization of the flashlight transformation of copulas (Onken et al., PLoS Comput Biol 2009)"
 keywords = ["math", "copula", "probability", "measure-theory"]
@@ -7,7 +7,7 @@ homepage = "https://asnelt.github.io/flashlight/docs"
 license = "Apache-2.0"
 licenseFiles = ["LICENSE"]
 readmeFile = "README.md"
-defaultTargets = ["Flashlight"]
+defaultTargets = ["Flashlight", "Solution"]
 
 [leanOptions]
 pp.unicode.fun = true # pretty-prints `fun a ↦ b`
@@ -18,7 +18,17 @@ maxSynthPendingDepth = 3
 [[require]]
 name = "mathlib"
 scope = "leanprover-community"
-rev = "v4.34.1"
+rev = "v4.36.0"
 
 [[lean_lib]]
 name = "Flashlight"
+
+# The definitions and the statement of the main theorem, with `sorry` in place of the proof. It
+# is not a default target, so that `lake build` and `lake check` do not see the `sorry`;
+# `lake comparator` builds it on its own.
+[[lean_lib]]
+name = "Challenge"
+
+# The solution checked by `lake comparator`: a thin module that imports the library `Flashlight`.
+[[lean_lib]]
+name = "Solution"
