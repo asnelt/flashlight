@@ -27,7 +27,11 @@ jobs:
 
   docs:
     # Only pushes to the default branch publish the documentation.
-    if: github.event_name == 'push' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    # Disabled for now: a clean build with doc-gen4 v4.36.0 fails with "resource exhausted (error
+    # code: 12, not enough memory)" (https://github.com/leanprover/doc-gen4/issues/434). The fix is
+    # expected in doc-gen4 v4.37.0; after upgrading, restore the condition below.
+    # if: github.event_name == 'push' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    if: false
     needs: build
     runs-on: ubuntu-latest
     permissions:
